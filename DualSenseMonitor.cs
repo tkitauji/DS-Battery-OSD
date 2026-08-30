@@ -25,6 +25,7 @@ internal sealed class DualSenseMonitor : IDisposable
             var path = HidNative.FindDualSensePath();
             if (path is null)
             {
+                DiagnosticLog.Write("DualSense not found");
                 Publish(null);
                 await Task.Delay(1500, token).ConfigureAwait(false);
                 continue;
@@ -35,8 +36,9 @@ internal sealed class DualSenseMonitor : IDisposable
                 await ReadDeviceAsync(path, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-            catch
+            catch (Exception error)
             {
+                DiagnosticLog.Write($"Read failed: {error}");
                 Publish(null);
                 await Task.Delay(1000, token).ConfigureAwait(false);
             }
@@ -49,6 +51,7 @@ internal sealed class DualSenseMonitor : IDisposable
         if (handle.IsInvalid) return;
 
         var inputLength = HidNative.GetInputReportLength(handle);
+        DiagnosticLog.Write($"Opened {path}; input report length={inputLength}");
         if (inputLength < 54) return;
 
         // Bluetooth starts with the short compatibility report. Reading feature
@@ -68,7 +71,8 @@ internal sealed class DualSenseMonitor : IDisposable
             }
 
             var state = ParseReport(report, read);
-            if (state is not null) Publish(state);
+            if (state is not null)
+                Publish(state);
         }
     }
 
@@ -102,6 +106,9 @@ internal sealed class DualSenseMonitor : IDisposable
     {
         if (_lastState == state) return;
         _lastState = state;
+        DiagnosticLog.Write(state is null
+            ? "State changed: disconnected"
+            : $"State changed: {state.Value.Percent}%; {state.Value.ChargeState}");
         StateChanged?.Invoke(state);
     }
 
@@ -121,7 +128,8 @@ internal static class HidNative
     private const uint FileShareWrite = 0x2;
     private const uint OpenExisting = 3;
     private const uint FileFlagOverlapped = 0x40000000;
-    private static readonly string[] ProductIds = ["pid_0ce6", "pid_0df2"];
+    private static readonly string[] UsbProductIds = ["pid_0ce6", "pid_0df2"];
+    private static readonly string[] BluetoothProductIds = ["pid&0ce6", "pid&0df2"];
 
     public static string? FindDualSensePath()
     {
@@ -141,8 +149,8 @@ internal static class HidNative
                     Marshal.WriteInt32(detail, IntPtr.Size == 8 ? 8 : 6);
                     if (!SetupDiGetDeviceInterfaceDetail(infoSet, ref data, detail, required, out _, IntPtr.Zero)) continue;
                     var path = Marshal.PtrToStringUni(detail + 4);
-                    if (path is not null && path.Contains("vid_054c", StringComparison.OrdinalIgnoreCase) &&
-                        ProductIds.Any(pid => path.Contains(pid, StringComparison.OrdinalIgnoreCase)))
+                    if (path is not null) DiagnosticLog.Write($"HID path: {path}");
+                    if (path is not null && IsDualSensePath(path))
                         return path;
                 }
                 finally { Marshal.FreeHGlobal(detail); }
@@ -150,6 +158,18 @@ internal static class HidNative
         }
         finally { SetupDiDestroyDeviceInfoList(infoSet); }
         return null;
+    }
+
+    internal static bool IsDualSensePath(string path)
+    {
+        var isUsb = path.Contains("vid_054c", StringComparison.OrdinalIgnoreCase) &&
+                    UsbProductIds.Any(pid => path.Contains(pid, StringComparison.OrdinalIgnoreCase));
+
+        // Bluetooth HID paths encode Sony's vendor ID as VID&0002054C.
+        var isBluetooth = path.Contains("vid&0002054c", StringComparison.OrdinalIgnoreCase) &&
+                          BluetoothProductIds.Any(pid => path.Contains(pid, StringComparison.OrdinalIgnoreCase));
+
+        return isUsb || isBluetooth;
     }
 
     public static SafeFileHandle OpenDevice(string path) => CreateFile(path, GenericRead,
