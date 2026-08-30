@@ -104,17 +104,21 @@ internal sealed class DualSenseMonitor : IDisposable
         var status = report[statusOffset];
         var rawLevel = status & 0x0F;
         var rawCharge = status >> 4;
+        var percent = Math.Clamp(rawLevel * 10, 0, 100);
         var chargeState = rawCharge switch
         {
             0x0 => ChargeState.Discharging,
             0x1 => ChargeState.Charging,
-            0x2 => ChargeState.Full,
+            // Some controllers report charge state 2 as soon as a cable is
+            // attached, even while the capacity nibble is below 100%.
+            // Treat it as truly full only when both fields agree.
+            0x2 when percent == 100 => ChargeState.Full,
+            0x2 => ChargeState.Charging,
             _ => ChargeState.Unknown
         };
 
-        // Capacity and charge status are independent. Some controllers briefly
-        // report Full when a cable is attached, so never force the level to 100%.
-        var percent = Math.Clamp(rawLevel * 10, 0, 100);
+        // Capacity always comes from the capacity nibble. Never turn a cable or
+        // charge-status change into an artificial jump to 100%.
         return new BatteryState(percent, chargeState);
     }
 
