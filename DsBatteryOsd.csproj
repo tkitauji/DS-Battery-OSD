@@ -9,4 +9,8 @@
     <AssemblyName>DS Battery OSD</AssemblyName>
     <RootNamespace>DsBatteryOsd</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Nunito.ttf" />
+    <None Update="Assets\OFL-Nunito.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -97,8 +97,9 @@ internal sealed class DualSenseMonitor : IDisposable
             _ => ChargeState.Unknown
         };
 
-        // The protocol exposes 0..10 in ten-percent steps; full overrides stale capacity.
-        var percent = chargeState == ChargeState.Full ? 100 : Math.Clamp(rawLevel * 10, 0, 100);
+        // Capacity and charge status are independent. Some controllers briefly
+        // report Full when a cable is attached, so never force the level to 100%.
+        var percent = Math.Clamp(rawLevel * 10, 0, 100);
         return new BatteryState(percent, chargeState);
     }
 

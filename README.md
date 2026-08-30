@@ -7,7 +7,10 @@ DualSense / DualSense Edgeの電池残量を、Windowsデスクトップ右上�
 - USB / Bluetooth接続を自動検出
 - 10%刻みのバッテリー残量と充電状態を表示
 - 切断時は自動的に非表示
-- 常に最前面、枠なし、クリック透過
+- 常に最前面、枠なし、背景なし
+- 表示領域全体をマウスドラッグで移動
+- 20%未満は赤色で表示
+- 丸みのあるNunito Boldをアプリへ同梱
 - DualSense以外のゲームやプロセスにはアクセスしない
 
 ## ビルド
@@ -18,8 +21,14 @@ DualSense / DualSense Edgeの電池残量を、Windowsデスクトップ右上�
 dotnet build .\DsBatteryOsd.csproj -c Release
 ```
 
-起動後、DualSenseを接続すると右上に `DS 70%` のように表示されます。
+起動後、DualSenseを接続すると右上に `🎮 70%` のように表示されます。充電中は `🎮 ⚡ 70%` になります。
 
 ## 現時点の範囲
 
 単一コントローラー向けのMVPです。設定画面、タスクトレイ、自動起動、複数台対応、インストーラーはまだ含みません。
+
+## ライセンス
+
+アプリ本体は[MIT License](LICENSE)です。
+
+同梱するNunitoフォントはSIL Open Font License 1.1です。ライセンス全文は[Assets/OFL-Nunito.txt](Assets/OFL-Nunito.txt)を参照してください。

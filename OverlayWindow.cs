@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -9,7 +10,6 @@ namespace DsBatteryOsd;
 internal sealed class OverlayWindow : Window
 {
     private const int GwlExStyle = -20;
-    private const int WsExTransparent = 0x20;
     private const int WsExToolWindow = 0x80;
     private const int WsExNoActivate = 0x08000000;
 
@@ -28,31 +28,44 @@ internal sealed class OverlayWindow : Window
         Topmost = true;
         ShowInTaskbar = false;
         ShowActivated = false;
-        Visibility = Visibility.Hidden;
+        Opacity = 0;
+        IsHitTestVisible = false;
 
         _text = new TextBlock
         {
             Foreground = Brushes.White,
-            FontFamily = new FontFamily("Segoe UI Semibold"),
+            FontFamily = new FontFamily(new Uri("pack://application:,,,/"), "./Assets/#Nunito"),
+            FontWeight = FontWeights.Bold,
             FontSize = 22,
             VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(12, 5, 12, 6),
+            Cursor = Cursors.SizeAll
         };
 
-        TextOptions.SetTextFormattingMode(_text, TextFormattingMode.Display);
+        TextOptions.SetTextFormattingMode(_text, TextFormattingMode.Ideal);
+        TextOptions.SetTextRenderingMode(_text, TextRenderingMode.Grayscale);
+        TextOptions.SetTextHintingMode(_text, TextHintingMode.Animated);
 
-        Content = new Border
+        Content = new Grid
         {
             Background = Brushes.Transparent,
-            Padding = new Thickness(12, 5, 12, 6),
-            Child = _text
+            Children = { _text }
+        };
+        MouseLeftButtonDown += (_, eventArgs) =>
+        {
+            if (eventArgs.ButtonState == MouseButtonState.Pressed)
+                DragMove();
         };
 
         SourceInitialized += (_, _) => MakeClickThrough();
-        Loaded += (_, _) => PlaceAtTopRight();
+        Loaded += (_, _) =>
+        {
+            PlaceAtTopRight();
+            _monitor.Start();
+        };
         SystemParameters.StaticPropertyChanged += (_, _) => PlaceAtTopRight();
         _monitor.StateChanged += OnStateChanged;
-        _monitor.Start();
         Closed += (_, _) => _monitor.Dispose();
     }
 
@@ -60,22 +73,25 @@ internal sealed class OverlayWindow : Window
     {
         if (state is null)
         {
-            Hide();
+            Opacity = 0;
+            IsHitTestVisible = false;
+            Visibility = Visibility.Hidden;
             return;
         }
 
         var battery = state.Value;
         _text.Text = battery.ChargeState switch
         {
-            ChargeState.Full => "⚡ DS 100%",
-            ChargeState.Charging => $"⚡ DS {battery.Percent}%",
-            _ => $"🎮 DS {battery.Percent}%"
+            ChargeState.Full => $"🎮 ⚡ {battery.Percent}%",
+            ChargeState.Charging => $"🎮 ⚡ {battery.Percent}%",
+            _ => $"🎮 {battery.Percent}%"
         };
-        _text.Foreground = battery.Percent <= 10 && !battery.IsCharging
-            ? Brushes.OrangeRed
+        _text.Foreground = battery.Percent < 20
+            ? Brushes.Red
             : Brushes.White;
-        PlaceAtTopRight();
-        Show();
+        Visibility = Visibility.Visible;
+        IsHitTestVisible = true;
+        Opacity = 1;
     });
 
     private void PlaceAtTopRight()
@@ -90,7 +106,7 @@ internal sealed class OverlayWindow : Window
         var handle = new WindowInteropHelper(this).Handle;
         var style = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
         SetWindowLongPtr(handle, GwlExStyle,
-            new IntPtr(style | WsExTransparent | WsExToolWindow | WsExNoActivate));
+            new IntPtr(style | WsExToolWindow | WsExNoActivate));
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
