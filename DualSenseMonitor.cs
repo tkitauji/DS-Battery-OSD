@@ -104,21 +104,19 @@ internal sealed class DualSenseMonitor : IDisposable
         var status = report[statusOffset];
         var rawLevel = status & 0x0F;
         var rawCharge = status >> 4;
-        var percent = Math.Clamp(rawLevel * 10, 0, 100);
         var chargeState = rawCharge switch
         {
             0x0 => ChargeState.Discharging,
             0x1 => ChargeState.Charging,
-            // Some controllers report charge state 2 as soon as a cable is
-            // attached, even while the capacity nibble is below 100%.
-            // Treat it as truly full only when both fields agree.
-            0x2 when percent == 100 => ChargeState.Full,
-            0x2 => ChargeState.Charging,
+            0x2 => ChargeState.Full,
             _ => ChargeState.Unknown
         };
 
-        // Capacity always comes from the capacity nibble. Never turn a cable or
-        // charge-status change into an artificial jump to 100%.
+        // Sony's driver treats charge state 2 as authoritative. The capacity
+        // nibble may retain an older bucket after charging has completed.
+        var percent = rawCharge == 0x2
+            ? 100
+            : Math.Clamp(rawLevel * 10, 0, 100);
         return new BatteryState(percent, chargeState);
     }
 
