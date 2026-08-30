@@ -23,8 +23,8 @@ internal sealed class DualSenseMonitor : IDisposable
     {
         while (!token.IsCancellationRequested)
         {
-            var path = HidNative.FindDualSensePath();
-            if (path is null)
+            var paths = HidNative.FindDualSensePaths();
+            if (paths.Count == 0)
             {
                 DiagnosticLog.Write("DualSense not found");
                 Publish(null);
@@ -32,24 +32,37 @@ internal sealed class DualSenseMonitor : IDisposable
                 continue;
             }
 
-            try
+            foreach (var path in paths)
             {
-                await ReadDeviceAsync(path, token).ConfigureAwait(false);
+                try
+                {
+                    await ReadDeviceAsync(path, token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception error)
+                {
+                    DiagnosticLog.Write($"Read failed for {path}: {error}");
+                }
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-            catch (Exception error)
-            {
-                DiagnosticLog.Write($"Read failed: {error}");
-                Publish(null);
-                await Task.Delay(1000, token).ConfigureAwait(false);
-            }
+
+            // A game or input mapper can temporarily hold the HID interface.
+            // The device is still physically connected, so keep the last known
+            // display and retry instead of treating this as a disconnection.
+            await Task.Delay(1000, token).ConfigureAwait(false);
         }
     }
 
     private async Task ReadDeviceAsync(string path, CancellationToken token)
     {
         using var handle = HidNative.OpenDevice(path);
-        if (handle.IsInvalid) return;
+        if (handle.IsInvalid)
+        {
+            DiagnosticLog.Write($"Could not open {path}");
+            return;
+        }
 
         var inputLength = HidNative.GetInputReportLength(handle);
         DiagnosticLog.Write($"Opened {path}; input report length={inputLength}");
@@ -149,11 +162,12 @@ internal static class HidNative
     private static readonly string[] UsbProductIds = ["pid_0ce6", "pid_0df2"];
     private static readonly string[] BluetoothProductIds = ["pid&0ce6", "pid&0df2"];
 
-    public static string? FindDualSensePath()
+    public static IReadOnlyList<string> FindDualSensePaths()
     {
+        var paths = new List<string>();
         HidD_GetHidGuid(out var hidGuid);
         var infoSet = SetupDiGetClassDevs(ref hidGuid, null, IntPtr.Zero, DigcfPresent | DigcfDeviceInterface);
-        if (infoSet == new IntPtr(-1)) return null;
+        if (infoSet == new IntPtr(-1)) return paths;
         try
         {
             for (uint index = 0; ; index++)
@@ -169,13 +183,13 @@ internal static class HidNative
                     var path = Marshal.PtrToStringUni(detail + 4);
                     if (path is not null) DiagnosticLog.Write($"HID path: {path}");
                     if (path is not null && IsDualSensePath(path))
-                        return path;
+                        paths.Add(path);
                 }
                 finally { Marshal.FreeHGlobal(detail); }
             }
         }
         finally { SetupDiDestroyDeviceInfoList(infoSet); }
-        return null;
+        return paths;
     }
 
     internal static bool IsDualSensePath(string path)
