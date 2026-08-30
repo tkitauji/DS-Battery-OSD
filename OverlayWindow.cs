@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,6 +13,13 @@ internal sealed class OverlayWindow : Window
     private const int GwlExStyle = -20;
     private const int WsExToolWindow = 0x80;
     private const int WsExNoActivate = 0x08000000;
+    private const double MinimumVisibleWidth = 40;
+    private const double MinimumVisibleHeight = 24;
+
+    private static readonly string PositionFilePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "DS Battery OSD",
+        "window-position.json");
 
     private readonly TextBlock _text;
     private readonly DualSenseMonitor _monitor = new();
@@ -55,18 +63,25 @@ internal sealed class OverlayWindow : Window
         MouseLeftButtonDown += (_, eventArgs) =>
         {
             if (eventArgs.ButtonState == MouseButtonState.Pressed)
+            {
                 DragMove();
+                SavePosition();
+            }
         };
 
         SourceInitialized += (_, _) => MakeClickThrough();
         Loaded += (_, _) =>
         {
-            PlaceAtTopRight();
+            RestorePosition();
             _monitor.Start();
         };
-        SystemParameters.StaticPropertyChanged += (_, _) => PlaceAtTopRight();
+        SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
         _monitor.StateChanged += OnStateChanged;
-        Closed += (_, _) => _monitor.Dispose();
+        Closed += (_, _) =>
+        {
+            SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
+            _monitor.Dispose();
+        };
     }
 
     private void OnStateChanged(BatteryState? state) => Dispatcher.Invoke(() =>
@@ -101,6 +116,67 @@ internal sealed class OverlayWindow : Window
         Top = area.Top + 20;
     }
 
+    private void RestorePosition()
+    {
+        try
+        {
+            if (File.Exists(PositionFilePath))
+            {
+                var saved = JsonSerializer.Deserialize<WindowPosition>(
+                    File.ReadAllText(PositionFilePath));
+                if (saved is not null && IsPositionVisible(saved.Left, saved.Top))
+                {
+                    Left = saved.Left;
+                    Top = saved.Top;
+                    return;
+                }
+            }
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+        catch (JsonException) { }
+
+        PlaceAtTopRight();
+    }
+
+    private void SavePosition()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(PositionFilePath)!;
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(PositionFilePath,
+                JsonSerializer.Serialize(new WindowPosition(Left, Top)));
+        }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private bool IsPositionVisible(double left, double top)
+    {
+        if (!double.IsFinite(left) || !double.IsFinite(top))
+            return false;
+
+        var savedBounds = new Rect(left, top, Width, Height);
+        var virtualScreen = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        savedBounds.Intersect(virtualScreen);
+        return savedBounds.Width >= MinimumVisibleWidth
+            && savedBounds.Height >= MinimumVisibleHeight;
+    }
+
+    private void OnSystemParametersChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs eventArgs)
+    {
+        if (!IsLoaded || IsPositionVisible(Left, Top))
+            return;
+
+        PlaceAtTopRight();
+        SavePosition();
+    }
+
     private void MakeClickThrough()
     {
         var handle = new WindowInteropHelper(this).Handle;
@@ -114,4 +190,6 @@ internal sealed class OverlayWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+
+    private sealed record WindowPosition(double Left, double Top);
 }
