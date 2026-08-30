@@ -43,8 +43,7 @@ internal sealed class OverlayWindow : Window
 
         Content = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(180, 16, 18, 22)),
-            CornerRadius = new CornerRadius(8),
+            Background = Brushes.Transparent,
             Padding = new Thickness(12, 5, 12, 6),
             Child = _text
         };
