@@ -82,7 +82,7 @@ internal sealed class OverlayWindow : Window
         var battery = state.Value;
         _text.Text = battery.ChargeState switch
         {
-            ChargeState.Full => $"🎮 ⚡ {battery.Percent}%",
+            ChargeState.Full => "🎮 ⚡ FULL",
             ChargeState.Charging => $"🎮 ⚡ {battery.Percent}%",
             _ => $"🎮 {battery.Percent}%"
         };
