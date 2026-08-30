@@ -54,3 +54,5 @@ Store版の自動起動は、アプリを一度起動すると登録されます
 アプリ本体は[MIT License](LICENSE)です。
 
 同梱するNunitoフォントはSIL Open Font License 1.1です。ライセンス全文は[Assets/OFL-Nunito.txt](Assets/OFL-Nunito.txt)を参照してください。
+
+プライバシーに関する取り扱いは[プライバシーポリシー](PRIVACY.md)を参照してください。
