@@ -2,6 +2,8 @@
 
 DualSense / DualSense Edgeの電池残量を、Windowsデスクトップ右上に表示する最小オーバーレイです。
 
+![FINAL FANTASY XIVでの表示例](docs/images/ds-battery-osd-ffxiv.png)
+
 ## MVPの動作
 
 - USB / Bluetooth接続を自動検出
