@@ -5,6 +5,7 @@ namespace DsBatteryOsd;
 
 internal sealed class DualSenseMonitor : IDisposable
 {
+    private static readonly TimeSpan ReportTimeout = TimeSpan.FromSeconds(10);
     private readonly CancellationTokenSource _stop = new();
     private BatteryState? _lastState;
     private bool _started;
@@ -65,7 +66,21 @@ internal sealed class DualSenseMonitor : IDisposable
             var read = 0;
             while (read < report.Length)
             {
-                var count = await stream.ReadAsync(report, read, report.Length - read, token).ConfigureAwait(false);
+                using var readTimeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+                readTimeout.CancelAfter(ReportTimeout);
+
+                int count;
+                try
+                {
+                    count = await stream.ReadAsync(
+                        report.AsMemory(read, report.Length - read),
+                        readTimeout.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    throw new TimeoutException("DualSense stopped sending input reports.");
+                }
+
                 if (count == 0) throw new EndOfStreamException();
                 read += count;
             }
