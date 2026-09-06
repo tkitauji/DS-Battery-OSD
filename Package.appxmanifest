@@ -24,13 +24,14 @@
 
   <Resources>
     <Resource Language="ja-jp" />
+    <Resource Language="en-us" />
   </Resources>
 
   <Applications>
     <Application Id="App" Executable="DS Battery OSD.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="DS Battery OSD"
-        Description="DualSenseのバッテリー残量を画面上に表示します。"
+        Description="Displays the battery level of a connected DualSense controller."
         BackgroundColor="transparent"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Square150x150Logo="Assets\Square150x150Logo.png">

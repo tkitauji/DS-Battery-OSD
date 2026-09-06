@@ -1,6 +1,6 @@
 # プライバシーポリシー
 
-最終更新日: 2026年8月30日
+最終更新日: 2026年9月6日
 
 DS Battery OSD（以下「本アプリ」）は、個人情報を収集、保存、送信しません。
 
@@ -17,3 +17,25 @@ DS Battery OSD（以下「本アプリ」）は、個人情報を収集、保存
 ## お問い合わせ
 
 本ポリシーまたは本アプリに関するお問い合わせは、[GitHub Issues](https://github.com/tkitauji/DS-Battery-OSD/issues)からお願いします。
+
+---
+
+# Privacy Policy
+
+Last updated: September 6, 2026
+
+DS Battery OSD (the “App”) does not collect, store, or transmit personal information.
+
+## Data handled by the App
+
+The App locally reads the battery level and charging status reported over HID by a DualSense or DualSense Edge controller connected to the Windows PC. This information is never transmitted outside the device.
+
+The App stores only the overlay window coordinates on the device so it can restore the display position the next time it starts. This setting does not contain personally identifiable information.
+
+## Network communication and third-party services
+
+The App does not use network communication, analytics, advertising, or third-party tracking services.
+
+## Contact
+
+For questions about this policy or the App, please use [GitHub Issues](https://github.com/tkitauji/DS-Battery-OSD/issues).
