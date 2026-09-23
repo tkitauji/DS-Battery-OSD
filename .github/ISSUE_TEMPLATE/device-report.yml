@@ -1,0 +1,80 @@
+name: "機器の動作報告 / Device compatibility"
+description: "表示できた機器・表示できなかった機器の情報 / Report working or non-working devices"
+title: "[Device] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        成功・失敗どちらも歓迎します。報告は公開されます。GitHubアカウントが必要です。
+        Both working and non-working reports are welcome. Reports are public and require a GitHub account.
+        MACアドレス、シリアル番号、機器ID、個人名を含む機器名、未加工ログは貼らないでください。
+        Do not include MAC addresses, serial numbers, device IDs, personal names or raw logs.
+        一般周辺機器対応は開発中です。Store版と開発版は区別してください。
+        General peripheral support is in development. Please distinguish Store and development builds.
+  - type: input
+    id: model
+    attributes:
+      label: "メーカー・型番 / Manufacturer and model"
+      placeholder: "Sony WF-1000XM5"
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: "アプリの入手元 / App source"
+      options:
+        - "Microsoft Store"
+        - "開発版・自分でビルド / Development or self-built"
+        - "不明 / Unknown"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "アプリのバージョン / App version"
+      description: "Windowsのインストール済みアプリで確認。開発版はビルド名やコミット。不明なら「不明」。 / Version, build name or commit; Unknown is acceptable."
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: "Windowsのバージョン / Windows version"
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: "PCとの接続方法 / Connection to the PC"
+      description: "充電用ケーブルではなく、PCへの通信経路。 / Data connection, not a charging-only cable."
+      options:
+        - "Bluetooth"
+        - "USBケーブル / USB cable"
+        - "USB無線レシーバー / USB wireless receiver"
+        - "その他・不明 / Other or unknown"
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: "結果 / Result"
+      options:
+        - "残量を表示できた / Battery level displayed"
+        - "機器一覧に出ない / Not listed"
+        - "一覧には出るがオーバーレイに出ない / Listed but no overlay"
+        - "残量・充電表示が不自然 / Unexpected battery or charging indication"
+        - "再接続・更新に問題 / Reconnection or update problem"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: "補足 / Details"
+      description: "表示までの待ち時間、Windows設定での残量表示の有無、再接続の結果など。スクリーンショットは個人情報を隠してから。 / Delay, Windows battery indication, reconnection results. Redact screenshots."
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: "公開前の確認 / Before publishing"
+      options:
+        - label: "個人情報・秘密情報・機器識別子を含めていません。 / No personal data, secrets or device identifiers included."
+          required: true
