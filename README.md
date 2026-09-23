@@ -51,6 +51,11 @@ Store版の自動起動は、アプリを一度起動すると登録されます
 
 単一コントローラー向けです。設定画面、タスクトレイ、複数台対応はまだ含みません。
 
+## 機器の動作報告
+
+[動作確認状況と報告方法](docs/device-compatibility.md)を公開しています。表示できた機器・できなかった機器、どちらも歓迎します。
+[GitHubで報告する](https://github.com/tkitauji/DS-Battery-OSD/issues/new?template=device-report.yml)（公開投稿・GitHubアカウントが必要）。個人情報や機器ID、未加工ログは投稿しないでください。
+
 ## ライセンス
 
 アプリ本体は[MIT License](LICENSE)です。
